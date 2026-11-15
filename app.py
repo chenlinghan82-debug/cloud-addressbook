@@ -15,7 +15,8 @@ from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, "data", "contacts.db")
+# Vercel 等只读文件系统要求把 SQLite 放到 /tmp，可用 DB_PATH 环境变量覆盖
+DB_PATH = os.environ.get("DB_PATH", os.path.join(BASE_DIR, "data", "contacts.db"))
 
 # 联系方式的四类信息：key -> Excel 列前缀
 DETAIL_TYPES = {
@@ -57,6 +58,40 @@ def init_db():
             );
             """
         )
+        # 云端演示实例（SEED_DEMO=1）在空库时灌入演示数据
+        if os.environ.get("SEED_DEMO") == "1" and not conn.execute(
+            "SELECT 1 FROM contacts LIMIT 1"
+        ).fetchone():
+            for item in DEMO_CONTACTS:
+                cur = conn.execute(
+                    "INSERT INTO contacts (name, favorite, notes) VALUES (?, ?, ?)",
+                    (item["name"], 1 if item["favorite"] else 0, item["notes"]),
+                )
+                save_details(conn, cur.lastrowid, item["details"])
+
+
+DEMO_CONTACTS = [
+    {"name": "Zhang Wei", "notes": "College roommate · monitor", "favorite": True, "details": [
+        {"type": "phone", "value": "13800138000"},
+        {"type": "phone", "value": "0591-88088088"},
+        {"type": "email", "value": "zhangwei@fzu.edu.cn"},
+        {"type": "social", "value": "WeChat: zhangwei_fzu"},
+        {"type": "address", "value": "No.5 Gongye Rd, Gulou, Fuzhou"},
+    ]},
+    {"name": "Li Na", "notes": "SE course leader", "favorite": True, "details": [
+        {"type": "phone", "value": "13912345678"},
+        {"type": "email", "value": "lina@stu.fzu.edu.cn"},
+        {"type": "address", "value": "Xueyuan Rd, Minhou, Fuzhou"},
+    ]},
+    {"name": "Wang Qiang", "notes": "Cloud deployment mentor", "favorite": False, "details": [
+        {"type": "email", "value": "wangqiang@huawei.com"},
+        {"type": "social", "value": "WeCom: wangqiang-hw"},
+    ]},
+    {"name": "Chen Xiaoming", "notes": "Basketball buddy", "favorite": False, "details": [
+        {"type": "phone", "value": "13766668888"},
+        {"type": "social", "value": "QQ: 987654321"},
+    ]},
+]
 
 
 def load_contact(conn, contact_id):
