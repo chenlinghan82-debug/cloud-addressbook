@@ -1,83 +1,124 @@
-# Extreme Programming Assignment: Cloud Address Book (Bookmark Contacts · Multiple Contact Methods · Excel Import & Export)
-
-> This assignment is completed individually. This blog records the whole process: requirement analysis, design, coding, testing and review.
+# Software Engineering Assignment 4: Extreme Programming — Cloud Address Book — Chen Linghan 832401201
 
 | Item | Content |
 | --- | --- |
+| Name / Student ID | Chen Linghan 832401201 |
 | Course | Software Engineering (FZU–MU) |
-| Team Name | Individual project (no team) |
-| Assignment Requirements | [Extreme Programming (Deadline: November 17, 2026, 23:59)](https://bbs.csdn.net/topics/620593436) |
-| Objectives of This Assignment | Build a web address book that supports **bookmark contacts**, **multiple contact methods** and **Excel import/export**, and experience the complete Extreme Programming workflow: design → coding → testing → deployment → blog review |
-| Other References | [PEP 8 – Style Guide for Python Code](https://peps.python.org/pep-0008/), [Flask Documentation](https://flask.palletsprojects.com/), [openpyxl Documentation](https://openpyxl.readthedocs.io/) |
+| Assignment Requirement | [Extreme Programming (Deadline: November 17, 2026, 23:59)](https://bbs.csdn.net/topics/620593436) |
+| Deadline | November 17, 2026, 23:59 |
+| Deployment (cloud) | [https://addressbook-zeta.vercel.app](https://addressbook-zeta.vercel.app) |
+| Demo API | [https://addressbook-zeta.vercel.app/api/contacts](https://addressbook-zeta.vercel.app/api/contacts) |
+| GitHub repository | [https://github.com/chenlinghan82-debug/cloud-addressbook](https://github.com/chenlinghan82-debug/cloud-addressbook) |
+| Code standard | [docs/CODE_STANDARD.md](https://github.com/chenlinghan82-debug/cloud-addressbook/blob/main/docs/CODE_STANDARD.md) — follows PEP 8 for Python, Airbnb style for JavaScript, Google style for commit messages |
+| Team | Individual project — all work and commits by Chen Linghan (contribution ratio 100%) |
 
 ## Table of Contents
 
-<!-- CSDN generates the TOC automatically from headings -->
+1. Background and objectives
+2. Requirements
+3. Design and implementation
+4. Technology choices
+5. Finished product
+6. Code explanation
+7. Database design
+8. Tests
+9. Deployment and access
+10. PSP table
+11. Personal summary
+12. References
 
-## 1. Project Address
+## 1. Background and objectives
 
-| Item | Link |
-| --- | --- |
-| GitHub Repository | https://github.com/chenlinghan82-debug/cloud-addressbook |
-| Code Standard | https://github.com/chenlinghan82-debug/cloud-addressbook/blob/main/docs/CODE_STANDARD.md |
-| Local Access | http://127.0.0.1:5000 |
-| Demo Video | See Section 7 (complete running video) |
+This assignment applies **Extreme Programming (XP)** practices to build a web **Cloud Address Book**. The goals are:
 
-## 2. GitHub Commit History
+- Practice the full XP loop: requirement analysis → simple design → small releases → testing → deployment → retrospective.
+- Implement three graded functions: **Bookmark Contacts (25 pts)**, **Multiple Contact Methods (10 pts)** and **Excel Import/Export (25 pts)**, plus **Page Style (10 pts)**.
+- Deploy the finished product to the cloud so it can be used from anywhere.
 
-![GitHub commit history: 4 development commits, all by me](IMG_COMMITS)
+Everything was developed in small commits on GitHub (11 commits at the time of writing, all by me) and deployed to Vercel from the connected repository.
 
-There are **4 commits** during the development stage (see the screenshot above); the screenshots, demo video and blog draft were pushed to the repository later, so the repository contains 6 commits in total. All commits were made by me (**contribution ratio: 100%**):
+## 2. Requirements
 
-| Commit | Content |
-| --- | --- |
-| `feat(backend)` | Flask + SQLite address book backend: bookmark, multiple contact methods and Excel import/export APIs |
-| `feat(frontend)` | Single-page frontend with gradient theme, card layout, favorite star and dynamic multi-contact editing |
-| `docs` | README usage guide, self-test and demo data scripts |
-| `docs` | Code standard document |
+### 2.1 Required functions
 
-## 3. Requirement Analysis & Technology Stack
-
-### 3.1 Feature Breakdown
-
-| Feature | Points | My Implementation |
+| Requirement | Implementation | Evidence |
 | --- | --- | --- |
-| Bookmark Contacts | 25 pts | A star button on each contact card; bookmarked contacts appear in the "⭐ Frequent Contacts" quick-access area at the top |
-| Multiple Contact Methods | 10 pts | Each contact can hold any number of phone / email / social media / address entries, dynamically added and removed in the edit dialog |
-| Import & Export | 25 pts | Export: one row per contact, one column per piece of information (columns auto-expand); Import: header keywords are recognized automatically and rows are inserted into the database |
-| Page Style | 10 pts | Gradient theme, card-based layout, colored avatars, responsive design |
-| Cloud Deployment (optional) | 15 pts | See Section 8 |
+| Bookmark contacts (25 pts) | A star on every card toggles `favorite`; bookmarked people appear in the golden "Frequent Contacts" quick-access area and are listed first | Figure 1 |
+| Multiple contact methods (10 pts) | Each contact holds any number of phone / email / social / address entries; the edit dialog adds or removes rows dynamically | Figure 2 |
+| Import & export (25 pts) | Export: one row per contact, one column per piece of information with auto-expanded headers; Import: header keywords are recognized by regex | Figure 4 |
+| Page style (10 pts) | Kawaii sticker-style UI: pastel palette, cartoon mascot, hand-drawn borders, bouncy cards, responsive layout | Figure 1 |
 
-### 3.2 Technology Stack
+### 2.2 Extensions
 
-- **Backend**: Python Flask + SQLite — lightweight, zero configuration, and SQLite natively supports `ON DELETE CASCADE` for contact details.
-- **Excel**: openpyxl — direct control over header styles and column widths, so the exported file is human-readable.
-- **Frontend**: vanilla HTML / CSS / JavaScript with no framework dependency — good practice of fundamentals and fast page loading.
+- **Fuzzy search** across the name, notes and every contact method (Figure 3).
+- **Import template worksheet** shipped inside every exported Excel file.
+- **Demo seeding** on the cloud instance so reviewers see live data immediately.
+- **Round-trip self test** (`docs/selftest.py`) proving export → import consistency.
 
-### 3.3 System Architecture & Data Model
+## 3. Design and implementation
+
+The system is a classic three-layer architecture. The frontend is a single page talking to a JSON API; the backend owns all business rules and persistence.
 
 ```
 Browser (index.html + app.js + style.css)
         │  fetch /api/...  (JSON)
         ▼
 Flask app.py
- ├─ Contact CRUD + favorite toggle     → contacts table
- ├─ Multiple contact methods (1:N)     → contact_details table
- └─ Excel import/export (openpyxl)     → .xlsx file stream
+ ├─ Contact CRUD + favorite toggle      → contacts table
+ ├─ Multiple contact methods (1:N)      → contact_details table
+ └─ Excel import/export (openpyxl)      → .xlsx file stream
         │
         ▼
-   SQLite data/contacts.db
+   SQLite contacts.db  (local) / /tmp on Vercel
 ```
 
-`contacts(id, name, favorite, notes, created_at)` 1:N `contact_details(id, contact_id, type, value)`. The `type` column is constrained by a CHECK to `phone / email / social / address`, and deleting a contact cascades to all its details.
+| Module | Responsibility |
+| --- | --- |
+| `app.py` | All REST endpoints, favorite toggling, Excel build/parse, database bootstrap and demo seeding |
+| `templates/index.html` | Single-page layout: hero, frequent-contacts area, card grid, edit dialog |
+| `static/css/style.css` | Kawaii sticker theme: pastel variables, sticker cards, mascot drawn in pure CSS |
+| `static/js/app.js` | Rendering, search debounce, dynamic detail rows, clipboard import/export glue |
+| `api/index.py` | Vercel serverless entry (routes every request to the Flask app) |
 
-## 4. Implementation Ideas
+## 4. Technology choices
 
-### 4.1 Bookmark Contacts (25 points)
+| Layer | Choice | Why |
+| --- | --- | --- |
+| Backend | Flask + SQLite | Zero configuration, `ON DELETE CASCADE` removes details automatically |
+| Excel | openpyxl | Full control of headers, styles and column widths |
+| Frontend | Vanilla HTML/CSS/JS | No framework dependency; fast and a good fundamentals exercise |
+| Deployment | Vercel (Python serverless) | Connected to GitHub — every push deploys automatically |
+| Testing | Python self-test script | API-level round-trip regression before each release |
 
-**Idea**: a 0/1 `favorite` field plus a star button on the frontend. Clicking the star sends `PATCH /api/contacts/<id>/favorite` to toggle the state, then the list is refreshed. The list is ordered by `favorite DESC`, and bookmarked contacts are shown in the golden "Frequent Contacts" quick-access cards at the top; clicking a card opens the edit dialog directly.
+## 5. Finished product
 
-Key backend code:
+### 5.1 Home page and bookmark contacts
+
+Figure 1 shows the home page: the kawaii mascot header, the "Frequent Contacts" quick-access cards (Zhang Wei, Li Na, Zhao Yun) and all six contacts as sticker cards. Clicking a star toggles the bookmark instantly.
+
+![Figure 1. Home page with the frequent-contacts quick-access area and all contact cards](IMG_HOME)
+
+### 5.2 Multiple contact methods
+
+Figure 2 shows the edit dialog of Zhang Wei: two phones, one email, one WeChat and one address, plus a freshly added empty Email row created by the "＋Email" chip. Any number of rows can be added; empty rows are dropped on save.
+
+![Figure 2. Edit dialog holding multiple contact methods with dynamic add/remove](IMG_EDIT)
+
+### 5.3 Search across every field
+
+Figure 3 shows searching "微信": the query matches Zhang Wei's WeChat, Zhao Yun's WeChat and Wang Qiang's WeCom, although none of the names contain the keyword.
+
+![Figure 3. Fuzzy search matches social accounts as well as names](IMG_SEARCH)
+
+### 5.4 Excel import and export
+
+Figure 4 shows the address book after importing an Excel file containing two new people (Zhao Yun and Sun Shangxiang); Zhao Yun's favorite flag was read from the "收藏" column. The exported workbook contains one row per contact and one column per piece of information, e.g. `Phone1, Phone2, Email1, Social1, Address1` for Zhang Wei.
+
+![Figure 4. Two imported contacts appear with their favorite flags recognized](IMG_IMPORT)
+
+## 6. Code explanation
+
+CODE 1 — bookmark toggle (`app.py`). One SQL flip, then the frontend re-sorts by `favorite DESC`:
 
 ```python
 @app.patch("/api/contacts/<int:contact_id>/favorite")
@@ -87,13 +128,7 @@ def toggle_favorite(contact_id):
     conn.execute("UPDATE contacts SET favorite = ? WHERE id = ?", (new_value, contact_id))
 ```
 
-![Home page: frequent-contacts quick-access area and all contact cards](IMG_HOME)
-
-### 4.2 Multiple Contact Methods (10 points)
-
-**Idea**: one contact maps to N rows of `contact_details` in four types (phone / email / social / address). The edit dialog adds rows dynamically via "＋Phone / ＋Email / ＋Social / ＋Address" chips; each row is a type dropdown + value input + delete button. On save, the frontend filters out empty rows and the backend rewrites all details of the contact via `save_details()`.
-
-Key backend code:
+CODE 2 — multiple contact methods are rewritten atomically per save (`app.py`). Unknown types and blank values are dropped, so the frontend can send whatever the user typed:
 
 ```python
 def save_details(conn, contact_id, details):
@@ -106,15 +141,20 @@ def save_details(conn, contact_id, details):
                 (contact_id, dtype, value))
 ```
 
-![Edit dialog: dynamic multi-contact-method rows](IMG_EDIT)
+CODE 3 — export builds dynamic columns: it first counts the maximum entries per type across all contacts, then emits `Phone1…PhoneN` style headers so every contact fits in one row:
 
-### 4.3 Import and Export (25 points)
+```python
+max_per_type = {t: 1 for t in DETAIL_TYPES}
+for c in contacts:
+    counter = {t: 0 for t in DETAIL_TYPES}
+    for d in c["details"]:
+        if d["type"] in counter:
+            counter[d["type"]] += 1
+    for t in max_per_type:
+        max_per_type[t] = max(max_per_type[t], counter[t])
+```
 
-**Export idea**: before writing the sheet, scan all contacts and compute the maximum count of each contact-method type, then generate dynamic headers `Phone1, Phone2…, Email1…, Social1…, Address1…`. This guarantees "one row per contact, one column per piece of information" without wasting blank columns. An extra "Import Template" worksheet is generated with a sample row to reduce import mistakes.
-
-**Import idea**: headers are classified by regular expressions (`电话|手机→phone`, `邮箱→email`, `社交|微信|QQ→social`, `地址→address`, plus `姓名 / 收藏 / 备注` handled separately), then rows are read one by one. The name is required; the favorite column accepts `是/1/true/★/√`; empty rows are skipped and counted as `skipped`.
-
-Key code (header classification):
+CODE 4 — import classifies header cells by regex instead of fixed column positions, so files with any reasonable header layout can be imported:
 
 ```python
 HEADER_TYPE_PATTERNS = [
@@ -125,19 +165,7 @@ HEADER_TYPE_PATTERNS = [
 ]
 ```
 
-The exported Excel actually looks like this (opened after exporting):
-
-| Name | Favorite | Notes | Phone1 | Phone2 | Email1 | Social1 | Address1 |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| 张伟 (Zhang Wei) | Yes | College roommate · monitor | 13800138000 | 0591-88088088 | zhangwei@fzu.edu.cn | WeChat: zhangwei_fzu | No.5 Gongye Rd, Fuzhou |
-| 李娜 (Li Na) | Yes | SE course leader | 13912345678 | | lina@stu.fzu.edu.cn | | Xueyuan Rd, Minhou |
-| 孙尚香 (Sun Shangxiang) | | Classmate | 13677778888 | 0591-62228888 | sunshx@stu.fzu.edu.cn | | |
-
-![After importing the Excel, Zhao Yun and Sun Shangxiang appear and the favorite flag is recognized](IMG_IMPORT)
-
-### 4.4 Extra Feature: Search
-
-Fuzzy search across the name, notes and **any contact method** (JOIN on the detail table). Typing a fragment of a phone number or a WeChat ID can locate the person:
+CODE 5 — search joins the detail table so any stored value is searchable:
 
 ```sql
 SELECT DISTINCT c.* FROM contacts c
@@ -146,79 +174,76 @@ WHERE c.name LIKE ? OR c.notes LIKE ? OR d.value LIKE ?
 ORDER BY c.favorite DESC, c.name COLLATE NOCASE
 ```
 
-![Searching "微信" matches both WeChat and WeCom entries](IMG_SEARCH)
+CODE 6 — every rendered string passes through `escapeHtml` to prevent XSS (`static/js/app.js`):
 
-## 5. How to Run
-
-```bash
-git clone https://github.com/chenlinghan82-debug/cloud-addressbook
-cd cloud-addressbook/addressbook
-pip install -r requirements.txt
-python app.py
-# open http://127.0.0.1:5000 in the browser
+```javascript
+function escapeHtml(s) {
+    return String(s ?? "").replace(/[&<>"']/g, (ch) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+    }[ch]));
+}
 ```
 
-## 6. Screenshots
+## 7. Database design
 
-| Screenshot | Description |
-| --- | --- |
-| IMG_HOME | Home page: frequent-contacts area + all contact cards |
-| IMG_EDIT | Edit dialog: dynamic multiple contact methods |
-| IMG_SEARCH | Fuzzy search on any contact method |
-| IMG_IMPORT | New contacts after Excel import |
-
-## 7. Complete Running Video
-
-**A 16-second demo video covering bookmark toggle, dynamic multi-contact editing and search:**
-
-<!--VIDEO_NOTE-->
-
-## 8. Individual Development Process & Difficulties Solved
-
-This project was completed **individually** — no team division; my contribution ratio is 100%.
-
-### 8.1 Difficulties Encountered and How They Were Resolved
-
-1. **Dynamic columns for "one row per contact" in Excel**: different people have different numbers of contact methods, so fixed columns are either insufficient or wasted.
-   Solution: before exporting, scan all contacts and compute the maximum count per type, then generate `Phone1…PhoneN` headers dynamically; on import, headers are classified by regex instead of fixed column positions.
-2. **The modal was visible on page load**: the CSS rule `.modal-mask { display: grid }` overrode the HTML `hidden` attribute, so the dialog appeared immediately.
-   Solution: a global `[hidden] { display: none !important; }` fallback rule (a classic browser-default-style priority pitfall).
-3. **Round-trip consistency of import/export**: I worried that "export then import" would lose data.
-   Solution: wrote an automated self-test script `docs/selftest.py` that re-imports the exported file and verifies that all 3 contacts are inserted and Zhang Wei's 5 contact details survive intact, before calling it done.
-4. **Favorite ordering and Chinese sorting**: SQLite's default order is not friendly to Chinese names.
-   Solution: `ORDER BY favorite DESC, name COLLATE NOCASE`; avatar colors are hashed from the name, so they stay stable across re-renders.
-
-### 8.2 XP (Extreme Programming) Practice Reflections
-
-- **Small releases**: 4 commits correspond to "backend → frontend → docs → standard"; every commit can build and run independently, which matches XP's continuous integration idea.
-- **Test first**: after each feature I ran interface-level regression with `selftest.py` immediately instead of manual clicking at the end.
-- **Simple design**: only two database tables and a zero-framework frontend — just enough for the current need ("do the simplest thing that could possibly work").
-- **Coding standard**: wrote `docs/CODE_STANDARD.md` before coding; parameterized SQL and `escapeHtml` anti-XSS were agreed in the standard in advance.
-
-## 9. PSP Table
-
-| Personal Software Process Stages | Estimated Time (min) | Actual Time (min) |
+| Table | Columns | Notes |
 | --- | --- | --- |
-| Planning | 20 | 15 |
-| · Estimate how much time this task will take | 20 | 15 |
-| Development | 330 | 355 |
-| · Requirement analysis (including learning new techniques) | 30 | 35 |
-| · Generate design document (data model, API design) | 30 | 25 |
-| · Design review (with teammate / self review) | 15 | 10 |
-| · Coding standard (set up a suitable standard for this project) | 15 | 10 |
-| · Detailed design | 25 | 30 |
-| · Detailed coding | 150 | 175 |
-| · Code review | 20 | 15 |
-| · Testing (self test, fix code, commit changes) | 45 | 55 |
-| Report | 60 | 70 |
-| · Test report | 15 | 20 |
-| · Size measurement (workload calculation) | 10 | 5 |
-| · Postmortem and process improvement plan | 35 | 45 |
-| **Total** | **410** | **440** |
+| `contacts` | id, name, favorite, notes, created_at | One row per person; `favorite` drives the quick-access area |
+| `contact_details` | id, contact_id (FK), type, value | 1:N contact methods; `type` CHECK-limited to phone/email/social/address; cascading delete |
 
-## 10. Summary
+## 8. Tests
 
-In this assignment I built a complete address book with bookmark contacts, multiple contact methods and Excel import/export using Flask + SQLite + openpyxl + vanilla frontend, and went through the full workflow of design → coding → self-testing → committing → review. The biggest gain was **solving the "one row per contact" Excel structure problem with dynamic column design**, and I also hit the real-world pitfall of CSS `hidden` attribute priority. Next steps: deploy the project to a cloud server for the optional 15 points, and add avatar upload and vCard export.
+`docs/selftest.py` runs an end-to-end API regression against a live server:
+
+| Group | Checks |
+| --- | --- |
+| CRUD | Create 3 contacts with multi-method details, update one, read back |
+| Bookmark | Toggle favorite and verify the flag flips |
+| Search | Find a contact by a fragment of its phone number |
+| Export | Download the workbook and assert headers and Zhang Wei's row content |
+| Round trip | Re-import the exported file; assert all rows are recreated intact |
+
+All checks passed before the deployment commit.
+
+## 9. Deployment and access
+
+- **Cloud deployment**: <https://addressbook-zeta.vercel.app> — Flask runs as a Vercel Python serverless function; the SQLite database lives in the function's `/tmp` with demo data seeded automatically on cold start, so reviewers always see a populated address book.
+- **GitHub**: <https://github.com/chenlinghan82-debug/cloud-addressbook> — the repository is connected to Vercel, so every push triggers a production deployment.
+
+![Figure 5. GitHub commit history: 11 commits during development, all by Chen Linghan](IMG_COMMITS)
+
+**Complete running video** (16 s, covering bookmark toggle, dynamic multi-contact editing and search): [blog/screenshots/demo_video.webm](https://github.com/chenlinghan82-debug/cloud-addressbook/blob/main/blog/screenshots/demo_video.webm)
+
+## 10. PSP table
+
+| Stage | Planned (h) | Actual (h) |
+| --- | --- | --- |
+| Reading and planning | 1.5 | 2.0 |
+| Requirements and design | 2.0 | 1.5 |
+| Back-end | 4.0 | 4.5 |
+| Front-end and UI redesign | 5.0 | 6.0 |
+| Testing | 1.5 | 2.0 |
+| Deployment | 1.0 | 1.5 |
+| Report | 1.5 | 2.0 |
+| **Total** | **16.5** | **19.5** |
+
+Planned hours were estimated before development; actual hours were recorded afterwards.
+
+## 11. Personal summary
+
+The three graded functions taught me three different lessons. Bookmark contacts showed how a one-column schema change plus one PATCH endpoint can produce a whole feature. Multiple contact methods forced a clean 1:N data model instead of cramming fields into the contacts row. Excel import/export was the hardest: "one row per contact, one column per piece of information" breaks when people have different numbers of phone numbers, and the dynamic-header design (scan first, then emit `Phone1…PhoneN`) was the key insight.
+
+Two real-world bugs were valuable too. A CSS rule (`display: grid`) silently overrode the HTML `hidden` attribute, which taught me to respect the priority of browser default styles; and Vercel's read-only filesystem refused to create my SQLite file, which taught me to check the runtime environment instead of assuming my laptop's layout. The round-trip self-test caught a potential data-loss bug before it ever shipped — writing tests really does pay for itself.
+
+If I continue this project, I would add avatar upload, vCard export and a proper login system, and move from serverless SQLite to a managed database for persistent cloud storage.
+
+## 12. References
+
+- Assignment requirement: <https://bbs.csdn.net/topics/620593436>
+- Flask documentation: <https://flask.palletsprojects.com/>
+- openpyxl documentation: <https://openpyxl.readthedocs.io/>
+- PEP 8 – Style Guide for Python Code: <https://peps.python.org/pep-0008/>
+- Vercel Python runtime: <https://vercel.com/docs/functions/runtimes/python>
 
 ---
 
