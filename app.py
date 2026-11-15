@@ -15,7 +15,10 @@ from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-# Vercel 等只读文件系统要求把 SQLite 放到 /tmp，可用 DB_PATH 环境变量覆盖
+# Vercel 的文件系统只读：在 Vercel 环境下强制使用 /tmp 并开启演示数据播种
+if os.environ.get("VERCEL") == "1":
+    os.environ["DB_PATH"] = "/tmp/contacts.db"
+    os.environ.setdefault("SEED_DEMO", "1")
 DB_PATH = os.environ.get("DB_PATH", os.path.join(BASE_DIR, "data", "contacts.db"))
 
 # 联系方式的四类信息：key -> Excel 列前缀
