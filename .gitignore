@@ -1,0 +1,11 @@
+# 运行数据与临时文件
+data/*.db
+run.log
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# 测试生成的导出文件
+*.xlsx
+!docs/sample_import_template.xlsx
