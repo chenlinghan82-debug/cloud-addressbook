@@ -1,85 +1,85 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>云通讯录 · Cloud Address Book</title>
+    <title>Cloud Address Book · Kawaii Contact Manager</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📖</text></svg>">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐱</text></svg>">
 </head>
 <body>
     <div class="page">
         <header class="hero">
             <div class="hero-inner">
-                <div class="logo">📖</div>
+                <div class="mascot"><span class="cheek"></span></div>
                 <div>
-                    <h1>云通讯录 <span class="hero-en">Cloud Address Book</span></h1>
-                    <p class="hero-sub">收藏常联的人，管理多重的联系方式，一键导入导出 Excel</p>
+                    <h1>Cloud Address Book <span class="hero-en">🐱 keep your favorite people close</span></h1>
+                    <p class="hero-sub">Bookmark your besties · Manage multiple contact methods · Import &amp; export Excel in one click</p>
                 </div>
             </div>
             <div class="toolbar">
                 <div class="search-box">
                     <span class="search-icon">🔍</span>
-                    <input id="searchInput" type="text" placeholder="搜索姓名、电话、邮箱、地址…">
+                    <input id="searchInput" type="text" placeholder="Search name, phone, email, address…">
                 </div>
                 <div class="toolbar-actions">
-                    <button id="btnAdd" class="btn btn-primary">＋ 新建联系人</button>
-                    <button id="btnExport" class="btn btn-ghost" title="导出为 Excel">⬇ 导出 Excel</button>
-                    <button id="btnImport" class="btn btn-ghost" title="从 Excel 导入">⬆ 导入 Excel</button>
+                    <button id="btnAdd" class="btn btn-primary">＋ New Contact</button>
+                    <button id="btnExport" class="btn btn-peach" title="Export to Excel">⬇ Export Excel</button>
+                    <button id="btnImport" class="btn btn-mint" title="Import from Excel">⬆ Import Excel</button>
                     <input id="importFile" type="file" accept=".xlsx,.xlsm" hidden>
                 </div>
             </div>
         </header>
 
         <section id="favSection" class="fav-section" hidden>
-            <h2 class="section-title">⭐ 常用联系人</h2>
+            <h2 class="section-title">⭐ Frequent Contacts</h2>
             <div id="favGrid" class="fav-grid"></div>
         </section>
 
         <section class="list-section">
-            <h2 class="section-title">全部联系人 <span id="contactCount" class="count-badge">0</span></h2>
+            <h2 class="section-title">📖 All Contacts <span id="contactCount" class="count-badge">0</span></h2>
             <div id="contactGrid" class="contact-grid"></div>
             <div id="emptyState" class="empty" hidden>
-                <div class="empty-icon">🗂️</div>
-                <p>还没有联系人，点击右上角「新建联系人」开始吧</p>
+                <div class="empty-icon">🐣</div>
+                <p>No contacts yet — click "New Contact" to add your first friend!</p>
             </div>
         </section>
     </div>
 
-    <!-- 新建/编辑联系人弹窗 -->
+    <!-- New / edit contact modal -->
     <div id="modalMask" class="modal-mask" hidden>
         <div class="modal" role="dialog" aria-modal="true">
             <div class="modal-head">
-                <h3 id="modalTitle">新建联系人</h3>
-                <button class="icon-btn" id="btnCloseModal" title="关闭">✕</button>
+                <h3 id="modalTitle">New Contact</h3>
+                <button class="icon-btn" id="btnCloseModal" title="Close">✕</button>
             </div>
             <form id="contactForm">
                 <div class="form-row">
-                    <label>姓名 <b class="req">*</b></label>
-                    <input id="fName" type="text" required placeholder="联系人姓名">
+                    <label>Name <b class="req">*</b></label>
+                    <input id="fName" type="text" required placeholder="Contact name">
                 </div>
                 <div class="form-row">
-                    <label>备注</label>
-                    <input id="fNotes" type="text" placeholder="关系、公司、备忘…">
+                    <label>Notes</label>
+                    <input id="fNotes" type="text" placeholder="Relationship, company, memo…">
                 </div>
                 <div id="detailRows"></div>
                 <div class="detail-adder">
-                    <span>添加联系方式：</span>
-                    <button type="button" class="chip" data-add-type="phone">＋ 电话</button>
-                    <button type="button" class="chip" data-add-type="email">＋ 邮箱</button>
-                    <button type="button" class="chip" data-add-type="social">＋ 社交媒体</button>
-                    <button type="button" class="chip" data-add-type="address">＋ 地址</button>
+                    <span>Add contact method:</span>
+                    <button type="button" class="chip" data-add-type="phone">＋ Phone</button>
+                    <button type="button" class="chip" data-add-type="email">＋ Email</button>
+                    <button type="button" class="chip" data-add-type="social">＋ Social</button>
+                    <button type="button" class="chip" data-add-type="address">＋ Address</button>
                 </div>
                 <div class="modal-foot">
-                    <button type="button" class="btn btn-ghost" id="btnCancel">取消</button>
-                    <button type="submit" class="btn btn-primary" id="btnSave">保存</button>
+                    <button type="button" class="btn btn-ghost" id="btnCancel">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="btnSave">Save</button>
                 </div>
             </form>
         </div>
     </div>
 
     <div id="toastBox" class="toast-box"></div>
-    <footer class="footer">Software Engineering (FZU–MU) · Extreme Programming Assignment · 云通讯录 v1.0</footer>
+    <footer class="footer">Software Engineering (FZU–MU) · Extreme Programming Assignment · Cloud Address Book v2.0 🐾</footer>
 
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>

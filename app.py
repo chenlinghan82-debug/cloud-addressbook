@@ -128,7 +128,7 @@ def create_contact():
     data = request.get_json(force=True)
     name = str(data.get("name", "")).strip()
     if not name:
-        return jsonify({"error": "姓名不能为空"}), 400
+        return jsonify({"error": "Name is required"}), 400
     with get_db() as conn:
         cur = conn.execute(
             "INSERT INTO contacts (name, favorite, notes) VALUES (?, ?, ?)",
@@ -144,11 +144,11 @@ def update_contact(contact_id):
     data = request.get_json(force=True)
     name = str(data.get("name", "")).strip()
     if not name:
-        return jsonify({"error": "姓名不能为空"}), 400
+        return jsonify({"error": "Name is required"}), 400
     with get_db() as conn:
         row = conn.execute("SELECT id FROM contacts WHERE id = ?", (contact_id,)).fetchone()
         if row is None:
-            return jsonify({"error": "联系人不存在"}), 404
+            return jsonify({"error": "Contact not found"}), 404
         conn.execute(
             "UPDATE contacts SET name = ?, notes = ? WHERE id = ?",
             (name, str(data.get("notes", "")).strip(), contact_id),
@@ -162,7 +162,7 @@ def delete_contact(contact_id):
     with get_db() as conn:
         row = conn.execute("SELECT id FROM contacts WHERE id = ?", (contact_id,)).fetchone()
         if row is None:
-            return jsonify({"error": "联系人不存在"}), 404
+            return jsonify({"error": "Contact not found"}), 404
         conn.execute("DELETE FROM contact_details WHERE contact_id = ?", (contact_id,))
         conn.execute("DELETE FROM contacts WHERE id = ?", (contact_id,))
     return jsonify({"deleted": contact_id})
@@ -173,7 +173,7 @@ def toggle_favorite(contact_id):
     with get_db() as conn:
         row = conn.execute("SELECT favorite FROM contacts WHERE id = ?", (contact_id,)).fetchone()
         if row is None:
-            return jsonify({"error": "联系人不存在"}), 404
+            return jsonify({"error": "Contact not found"}), 404
         new_value = 0 if row["favorite"] else 1
         conn.execute("UPDATE contacts SET favorite = ? WHERE id = ?", (new_value, contact_id))
     return jsonify({"id": contact_id, "favorite": bool(new_value)})
@@ -292,24 +292,24 @@ def to_bool(value):
 def import_excel():
     file = request.files.get("file")
     if file is None or not file.filename:
-        return jsonify({"error": "请选择要导入的 Excel 文件"}), 400
+        return jsonify({"error": "Please choose an Excel file to import"}), 400
     if not file.filename.lower().endswith((".xlsx", ".xlsm")):
-        return jsonify({"error": "仅支持 .xlsx 格式的 Excel 文件"}), 400
+        return jsonify({"error": "Only .xlsx Excel files are supported"}), 400
 
     try:
         wb = load_workbook(file, read_only=True, data_only=True)
     except Exception:
-        return jsonify({"error": "文件解析失败，请确认为合法的 Excel 文件"}), 400
+        return jsonify({"error": "Failed to parse the file. Please make sure it is a valid Excel file"}), 400
 
     ws = wb.active
     rows = list(ws.iter_rows(values_only=True))
     wb.close()
     if len(rows) < 2:
-        return jsonify({"error": "表格为空，至少需要表头和一行数据"}), 400
+        return jsonify({"error": "The sheet is empty: at least a header row and one data row are required"}), 400
 
     types = [classify_header(cell) for cell in rows[0]]
     if "name" not in types:
-        return jsonify({"error": "表头缺少“姓名”列，无法导入"}), 400
+        return jsonify({"error": "Header is missing the Name column; cannot import"}), 400
 
     imported, skipped = 0, 0
     with get_db() as conn:

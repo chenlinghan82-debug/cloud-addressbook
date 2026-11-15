@@ -2,7 +2,7 @@
 (() => {
     "use strict";
 
-    const TYPE_LABEL = { phone: "电话", email: "邮箱", social: "社交", address: "地址" };
+    const TYPE_LABEL = { phone: "Phone", email: "Email", social: "Social", address: "Address" };
     const TYPE_ORDER = ["phone", "email", "social", "address"];
     const AVATAR_COLORS = ["#4f6df5", "#10b981", "#f59e0b", "#8b5cf6", "#ef4444", "#0ea5e9", "#d946ef", "#14b8a6"];
 
@@ -33,7 +33,7 @@
     async function api(url, options = {}) {
         const res = await fetch(url, options);
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || `请求失败(${res.status})`);
+        if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
         return data;
     }
 
@@ -125,7 +125,7 @@
             `<option value="${t}" ${t === type ? "selected" : ""}>${TYPE_LABEL[t]}</option>`).join("");
         row.innerHTML = `
             <select>${options}</select>
-            <input type="text" placeholder="请输入内容（留空将被忽略）" value="${escapeHtml(value)}">
+            <input type="text" placeholder="Enter a value (empty rows are ignored)" value="${escapeHtml(value)}">
             <button type="button" class="del-detail" title="删除此条">✕</button>`;
         row.querySelector(".del-detail").addEventListener("click", () => row.remove());
         $("#detailRows").appendChild(row);
@@ -135,7 +135,7 @@
     async function saveContact(e) {
         e.preventDefault();
         const name = $("#fName").value.trim();
-        if (!name) { toast("姓名不能为空", "err"); return; }
+        if (!name) { toast("Name is required", "err"); return; }
         const details = [...document.querySelectorAll("#detailRows .detail-row")]
             .map((row) => ({
                 type: row.querySelector("select").value,
@@ -150,14 +150,14 @@
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(payload),
                 });
-                toast("已保存修改");
+                toast("Changes saved");
             } else {
                 await api("/api/contacts", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(payload),
                 });
-                toast("新建联系人成功");
+                toast("Contact created");
             }
             closeModal();
             await reload();
@@ -184,7 +184,7 @@
         if (act === "fav") {
             try {
                 const r = await api(`/api/contacts/${id}/favorite`, { method: "PATCH" });
-                toast(r.favorite ? `已收藏「${state.contacts.find((c) => c.id === id)?.name ?? ""}」为常用联系人` : "已取消收藏");
+                toast(r.favorite ? `Bookmarked "${state.contacts.find((c) => c.id === id)?.name ?? ""}" as a frequent contact` : "Removed from favorites");
                 await reload();
             } catch (err) { toast(err.message, "err"); }
         } else if (act === "edit") {
@@ -192,10 +192,10 @@
             if (contact) openModal(contact);
         } else if (act === "del") {
             const name = state.contacts.find((c) => c.id === id)?.name ?? "该联系人";
-            if (!confirm(`确定删除「${name}」吗？删除后无法恢复。`)) return;
+            if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
             try {
                 await api(`/api/contacts/${id}`, { method: "DELETE" });
-                toast("已删除");
+                toast("Contact deleted");
                 await reload();
             } catch (err) { toast(err.message, "err"); }
         }
@@ -223,7 +223,7 @@
 
     $("#btnExport").addEventListener("click", () => {
         window.location.href = "/api/export";
-        toast("正在导出 Excel…");
+        toast("Exporting Excel…");
     });
 
     $("#btnImport").addEventListener("click", () => $("#importFile").click());
@@ -234,7 +234,7 @@
         fd.append("file", file);
         try {
             const r = await api("/api/import", { method: "POST", body: fd });
-            toast(`导入成功：新增 ${r.imported} 人${r.skipped ? `，跳过 ${r.skipped} 行` : ""}`);
+            toast(`Import succeeded: ${r.imported} contacts added${r.skipped ? `, ${r.skipped} rows skipped` : ""}`);
             await reload();
         } catch (err) {
             toast(err.message, "err");
