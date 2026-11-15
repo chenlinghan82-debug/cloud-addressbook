@@ -27,9 +27,9 @@
 
 ## 二、GitHub 提交历史
 
-![GitHub提交历史：4次提交，全部由本人完成](https://raw.githubusercontent.com/chenlinghan82-debug/cloud-addressbook/main/blog/screenshots/05_github_commits.png)
+![GitHub提交历史：开发阶段4次提交，全部由本人完成](https://raw.githubusercontent.com/chenlinghan82-debug/cloud-addressbook/main/blog/screenshots/05_github_commits.png)
 
-共 **4 次**提交，全部由本人完成（贡献比例：本人 100%）：
+开发阶段共 **4 次**提交（见上方截图）；博客成稿时又将运行截图、演示视频与博客草稿补充入库 2 次，仓库累计 6 次提交，**全部由本人完成（贡献比例：本人 100%）**：
 
 | 提交 | 内容 |
 | --- | --- |
@@ -37,6 +37,7 @@
 | `feat(frontend)` | 单页前端，渐变主题卡片布局、收藏星标与多联系方式动态编辑 |
 | `docs` | README 使用说明、自测与演示数据脚本 |
 | `docs` | 添加代码规范文档 |
+| `docs(blog)` ×2 | 运行截图、演示视频与博客草稿入库 |
 
 ## 三、需求分析与技术选型
 
