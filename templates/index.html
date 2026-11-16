@@ -26,8 +26,14 @@
                     <button id="btnAdd" class="btn btn-primary">＋ New Contact</button>
                     <button id="btnExport" class="btn btn-peach" title="Export to Excel">⬇ Export Excel</button>
                     <button id="btnImport" class="btn btn-mint" title="Import from Excel">⬆ Import Excel</button>
+                    <button id="btnDark" class="btn" title="Toggle dark mode">🌙</button>
                     <input id="importFile" type="file" accept=".xlsx,.xlsm" hidden>
                 </div>
+            </div>
+            <div class="stat-chips">
+                <span class="stat-chip chip-lav">👥 <b id="statTotal">0</b> contacts</span>
+                <span class="stat-chip chip-peach">⭐ <b id="statFav">0</b> favorites</span>
+                <span class="stat-chip chip-mint">📱 <b id="statMethods">0</b> contact methods</span>
             </div>
         </header>
 
@@ -37,11 +43,14 @@
         </section>
 
         <section class="list-section">
-            <h2 class="section-title">📖 All Contacts <span id="contactCount" class="count-badge">0</span></h2>
+            <h2 class="section-title">
+                <button class="ftab active" data-filter="all" id="tabAll">📖 All Contacts</button>
+                <button class="ftab" data-filter="fav" id="tabFav">⭐ Favorites <span id="favCount" class="count-badge">0</span></button>
+            </h2>
             <div id="contactGrid" class="contact-grid"></div>
             <div id="emptyState" class="empty" hidden>
                 <div class="empty-icon">🐣</div>
-                <p>No contacts yet — click "New Contact" to add your first friend!</p>
+                <p>No contacts here — click "New Contact" to add your first friend!</p>
             </div>
         </section>
     </div>
@@ -79,7 +88,7 @@
     </div>
 
     <div id="toastBox" class="toast-box"></div>
-    <footer class="footer">Software Engineering (FZU–MU) · Extreme Programming Assignment · Cloud Address Book v2.0 🐾</footer>
+    <footer class="footer">Software Engineering (FZU–MU) · Extreme Programming Assignment · Cloud Address Book v3.0 🐾</footer>
 
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>

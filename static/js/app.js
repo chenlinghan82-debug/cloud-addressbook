@@ -8,7 +8,7 @@
 
     const $ = (sel) => document.querySelector(sel);
 
-    const state = { contacts: [], keyword: "" };
+    const state = { contacts: [], keyword: "", filter: "all" };
 
     // ---------------------------------------------------------- utilities
     function toast(msg, type = "ok") {
@@ -39,8 +39,15 @@
 
     // ------------------------------------------------------------- render
     function render() {
-        const list = state.contacts;
-        const favs = list.filter((c) => c.favorite);
+        const all = state.contacts;
+        const favs = all.filter((c) => c.favorite);
+        const list = state.filter === "fav" ? favs : all;
+
+        // 统计面板
+        $("#statTotal").textContent = all.length;
+        $("#statFav").textContent = favs.length;
+        $("#statMethods").textContent = all.reduce((n, c) => n + c.details.length, 0);
+        $("#favCount").textContent = favs.length;
 
         $("#favSection").hidden = favs.length === 0;
         $("#favGrid").innerHTML = favs.map((c) => `
@@ -50,7 +57,6 @@
                 <div class="fav-sub">${escapeHtml(detailOf(c, "phone") || detailOf(c, "email") || "无联系方式")}</div>
             </div>`).join("");
 
-        $("#contactCount").textContent = list.length;
         $("#contactGrid").innerHTML = list.map(cardHtml).join("");
         $("#emptyState").hidden = list.length !== 0;
     }
@@ -59,12 +65,18 @@
         const details = TYPE_ORDER.flatMap((t) =>
             c.details.filter((d) => d.type === t).map((d) => ({ type: t, value: d.value }))
         );
+        const linkOf = (d) => {
+            if (d.type === "phone") return `tel:${d.value.replace(/\s|-/g, "")}`;
+            if (d.type === "email") return `mailto:${d.value}`;
+            if (d.type === "address") return `https://maps.google.com/?q=${encodeURIComponent(d.value)}`;
+            return "";
+        };
         return `
         <div class="contact-card" data-id="${c.id}">
             <div class="card-head">
                 <div class="avatar" style="background:${colorOf(c.name)}">${c.name.slice(0, 1).toUpperCase()}</div>
                 <div>
-                    <div class="card-name">${escapeHtml(c.name)}</div>
+                    <div class="card-name">${escapeHtml(c.name)}${c.favorite ? ' <span class="fav-flag">⭐</span>' : ""}</div>
                     <div class="card-notes" title="${escapeHtml(c.notes)}">${escapeHtml(c.notes || "")}</div>
                 </div>
                 <div class="card-actions">
@@ -75,11 +87,15 @@
                 </div>
             </div>
             <div class="detail-list">
-                ${details.map((d) => `
+                ${details.map((d) => {
+                    const href = linkOf(d);
+                    return `
                     <div class="detail-item">
                         <span class="detail-tag tag-${d.type}">${TYPE_LABEL[d.type]}</span>
-                        <span class="detail-value">${escapeHtml(d.value)}</span>
-                    </div>`).join("")}
+                        ${href ? `<a class="detail-value detail-link" href="${escapeHtml(href)}" target="_blank" rel="noopener" title="Click to ${d.type === "phone" ? "call" : d.type === "email" ? "send email" : "open map"}">${escapeHtml(d.value)}</a>`
+                               : `<span class="detail-value detail-copy" data-copy="${escapeHtml(d.value)}" title="Click to copy">${escapeHtml(d.value)}</span>`}
+                    </div>`;
+                }).join("")}
                 ${details.length === 0 ? '<div class="detail-item"><span class="detail-value" style="color:#9aa3b2">暂无联系方式</span></div>' : ""}
             </div>
         </div>`;
@@ -202,6 +218,34 @@
     });
 
     // ------------------------------------------------------ toolbar events
+    // 收藏 / 全部筛选标签
+    document.querySelectorAll(".ftab").forEach((tab) =>
+        tab.addEventListener("click", () => {
+            state.filter = tab.dataset.filter;
+            document.querySelectorAll(".ftab").forEach((t) => t.classList.toggle("active", t === tab));
+            render();
+        }));
+
+    // 深色模式
+    const darkBtn = $("#btnDark");
+    if (localStorage.getItem("cab-dark") === "1") {
+        document.body.classList.add("dark");
+        darkBtn.textContent = "☀️";
+    }
+    darkBtn.addEventListener("click", () => {
+        const on = document.body.classList.toggle("dark");
+        darkBtn.textContent = on ? "☀️" : "🌙";
+        localStorage.setItem("cab-dark", on ? "1" : "0");
+    });
+
+    // 点击社交账号复制
+    document.addEventListener("click", (e) => {
+        const copyEl = e.target.closest(".detail-copy");
+        if (copyEl && navigator.clipboard) {
+            navigator.clipboard.writeText(copyEl.dataset.copy).then(() => toast("Copied to clipboard"));
+        }
+    });
+
     let searchTimer = null;
     $("#searchInput").addEventListener("input", (e) => {
         clearTimeout(searchTimer);

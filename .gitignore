@@ -9,3 +9,5 @@ venv/
 # 测试生成的导出文件
 *.xlsx
 !docs/sample_import_template.xlsx
+
+.vercel

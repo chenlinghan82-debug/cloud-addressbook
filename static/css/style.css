@@ -440,6 +440,89 @@ body {
 .toast.ok { background: #57c48c; }
 .toast.err { background: #ef6f6f; }
 
+/* ---------------- 统计面板 / 筛选标签 ---------------- */
+.stat-chips { margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap; }
+
+.stat-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(255, 255, 255, .85);
+    border: 2.5px solid var(--ink);
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 13px;
+    box-shadow: 3px 3px 0 rgba(74, 59, 66, .18);
+}
+
+.chip-lav { background: #e3e0ff; }
+.chip-peach { background: #fff2cc; }
+.chip-mint { background: #d6f9ff; }
+
+.ftab {
+    border: none; background: transparent;
+    cursor: pointer;
+    font-size: 17px;
+    font-family: inherit;
+    color: var(--ink-2);
+    padding: 6px 12px;
+    border-radius: 12px;
+    transition: all .12s ease;
+}
+
+.ftab.active {
+    color: var(--ink);
+    background: #ffe4ec;
+    border: 2.5px dashed var(--pink);
+    font-weight: 700;
+}
+
+.fav-flag { font-size: 13px; }
+
+.detail-link { color: #374151; text-decoration: none; border-bottom: 1.5px dotted var(--pink); }
+.detail-link:hover { color: var(--pink-dark); }
+.detail-copy { cursor: copy; }
+.detail-copy:hover { color: var(--brand); }
+
+/* ---------------- Dark mode ---------------- */
+body.dark {
+    --bg: #241f26;
+    --card: #2e2831;
+    --ink: #f2e9ee;
+    --ink-2: #a89aa5;
+    --line: #453b49;
+    background-image:
+        radial-gradient(circle at 12% 20%, #3d2e3b 0 14px, transparent 15px),
+        radial-gradient(circle at 88% 12%, #263544 0 10px, transparent 11px),
+        radial-gradient(circle at 78% 85%, #403a2b 0 16px, transparent 17px),
+        radial-gradient(circle at 8% 78%, #322c44 0 12px, transparent 13px);
+}
+
+body.dark .hero { background: linear-gradient(135deg, #7a4a63 0%, #8a5f3f 55%, #8a7a3f 100%); }
+body.dark .hero h1, body.dark .hero-sub, body.dark .hero-en { color: #fff; }
+
+body.dark .contact-card,
+body.dark .modal,
+body.dark .search-box input,
+body.dark .detail-row select,
+body.dark .form-row input,
+body.dark .detail-row input,
+body.dark .stat-chip { background: #38303c; color: var(--ink); }
+
+body.dark .contact-card:nth-child(4n+2) { background: #372f3a; }
+body.dark .contact-card:nth-child(4n+3) { background: #2f3038; }
+body.dark .contact-card:nth-child(4n) { background: #383526; }
+
+body.dark .detail-item { background: #453b49; border-color: #52455a; }
+body.dark .detail-value { color: #e6dae2; }
+body.dark .card-notes, body.dark .detail-tag, body.dark .fav-card .fav-sub { color: var(--ink-2); }
+
+body.dark .fav-card { background: #3d3628; color: var(--ink); }
+body.dark .ftab { color: var(--ink-2); }
+body.dark .ftab.active { color: var(--ink); background: #4a3040; }
+
+body.dark .form-row label, body.dark .detail-adder { color: var(--ink-2); }
+body.dark .icon-btn:hover { background: #4a3040; color: var(--ink); }
+body.dark .empty, body.dark .footer { color: var(--ink-2); }
+
 /* ---------------- Footer ---------------- */
 .footer {
     text-align: center;
