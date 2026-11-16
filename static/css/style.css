@@ -237,6 +237,8 @@ body {
 .contact-card:nth-child(4n+3) { background: #f4fbff; }
 .contact-card:nth-child(4n) { background: #fffbe9; }
 
+.contact-card.span-all { grid-column: 1 / -1; }
+
 @keyframes pop { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: scale(1); } }
 
 .contact-card:hover { transform: translateY(-4px) rotate(-.4deg); box-shadow: 8px 10px 0 rgba(74, 59, 66, .15); }
