@@ -423,6 +423,15 @@ def not_found(_e):
     return jsonify({"error": "Page not found"}), 404
 
 
+# API 响应禁止缓存，避免浏览器/CDN 返回过期的列表数据
+@app.after_request
+def no_cache_for_api(response):
+    if request.path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+    return response
+
+
 if STORAGE_CONFIGURED:
     init_db()
 

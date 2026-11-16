@@ -31,7 +31,7 @@
     }
 
     async function api(url, options = {}) {
-        const res = await fetch(url, options);
+        const res = await fetch(url, { cache: "no-store", ...options });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
         return data;
