@@ -46,3 +46,11 @@ addressbook/
 - 第 1 列 `姓名` 必填；`收藏` 列取值 `是/1/true/★` 视为收藏；`备注` 列可选。
 - `电话1、电话2…`、`邮箱1、邮箱2…`、`社交1…`、`地址1…`：同一类信息按序号分列，导入时按表头关键字（电话/手机、邮箱、社交/微信/QQ、地址）自动识别，列数不限。
 - 导出文件含两个工作表：`通讯录`（数据）与 `导入模板`（格式示例）。
+
+## v3.1 双人协作补充
+
+成员：张晴涵832401226、陈凌晗832401201。[协作PR](https://github.com/chenlinghan82-debug/cloud-addressbook/pull/1)。保留v3.0界面，新增PostgreSQL适配、Excel可靠性和11项隔离测试。
+
+Vercel合并前必须配置DATABASE_URL；未配置会返回503，不再使用/tmp。见[队友部署步骤](docs/DEPLOYMENT.md)。
+
+运行python docs/selftest.py验证。SQLite与PostgreSQL CI均通过。两份个人博客见blog目录，最新截图已补；完整v3.0前端视频因浏览器工具停止而尚未补成。贡献评价见[CONTRIBUTIONS](docs/CONTRIBUTIONS.md)。
