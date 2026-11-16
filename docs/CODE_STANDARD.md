@@ -6,23 +6,23 @@ JavaScript 部分参考 [Airbnb JavaScript Style Guide](https://github.com/airbn
 
 ## Python（后端 `app.py`）
 
-1. 缩进统一 4 空格；字符串统一使用双引号或单引号之一（本项目用单引号）。
+1. 缩进统一 4 空格；同一文件的字符串引号尽量保持一致。
 2. 命名：函数与变量 `snake_case`，常量 `UPPER_SNAKE_CASE`（如 `DETAIL_TYPES`）。
-3. 每个路由函数不超过 40 行，数据库读写与 Excel 解析拆分为独立函数。
-4. 所有 SQL 使用参数化查询（`?` 占位符），禁止字符串拼接，防注入。
-5. 对外接口统一返回 JSON；错误信息统一放在 `error` 字段并使用 4xx 状态码。
+3. 复杂逻辑优先拆为独立函数，数据库连接与事务放在 database.py。
+4. SQL 的用户值使用参数化查询；SQLite 用 `?`，PostgreSQL 由适配层转为 `%s`。禁止把用户值拼入 SQL。
+5. JSON 接口的错误放在 `error` 字段并使用相应 HTTP 状态；页面返回 HTML，导出接口返回文件。
 
 ## JavaScript（前端 `static/js/app.js`）
 
 1. 统一使用 ES6+：`const/let`、箭头函数、模板字符串。
-2. 命名：函数与变量 `camelCase`，DOM 查询结果缓存于 `state`。
+2. 命名：函数与变量 `camelCase`，`state` 保存联系人和搜索词。
 3. 所有用户输入渲染前必须经过 `escapeHtml`，防 XSS。
 4. 网络请求统一走 `api()` 封装，错误统一 `toast` 提示。
 
 ## HTML / CSS
 
 1. CSS 自定义属性（`:root` 变量）统一管理颜色、圆角、阴影。
-2. 类名使用 BDD 式短横线命名（`contact-card`、`detail-row`）。
+2. 类名使用 kebab-case（`contact-card`、`detail-row`）。
 3. 页面在 640px 以下必须可用（响应式断点）。
 
 ## Git 提交规范

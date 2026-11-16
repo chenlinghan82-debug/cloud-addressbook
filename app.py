@@ -6,19 +6,19 @@ Flask + SQLite backend, openpyxl powered Excel import/export.
 import io
 import os
 import re
-import sqlite3
 from datetime import datetime
 
 from flask import Flask, jsonify, render_template, request, send_file
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
+from werkzeug.exceptions import HTTPException
+
+from database import connect, initialize
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-# Vercel 的文件系统只读：在 Vercel 环境下强制使用 /tmp 并开启演示数据播种
-if os.environ.get("VERCEL") == "1":
-    os.environ["DB_PATH"] = "/tmp/contacts.db"
-    os.environ.setdefault("SEED_DEMO", "1")
+DATABASE_URL = os.environ.get("DATABASE_URL", "")
+STORAGE_CONFIGURED = os.environ.get("VERCEL") != "1" or bool(DATABASE_URL)
 DB_PATH = os.environ.get("DB_PATH", os.path.join(BASE_DIR, "data", "contacts.db"))
 
 # 联系方式的四类信息：key -> Excel 列前缀
@@ -31,46 +31,24 @@ DETAIL_TYPES = {
 FAVORITE_TRUE = {"是", "1", "true", "y", "yes", "★", "√", "v"}
 
 app = Flask(__name__)
+app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024
 
 
 # ---------------------------------------------------------------- database
 def get_db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON")
-    return conn
+    return connect(DB_PATH, DATABASE_URL)
 
 
 def init_db():
-    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     with get_db() as conn:
-        conn.executescript(
-            """
-            CREATE TABLE IF NOT EXISTS contacts (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                favorite INTEGER NOT NULL DEFAULT 0,
-                notes TEXT NOT NULL DEFAULT '',
-                created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
-            );
-            CREATE TABLE IF NOT EXISTS contact_details (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                contact_id INTEGER NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
-                type TEXT NOT NULL CHECK (type IN ('phone','email','social','address')),
-                value TEXT NOT NULL
-            );
-            """
-        )
+        initialize(conn)
         # 云端演示实例（SEED_DEMO=1）在空库时灌入演示数据
         if os.environ.get("SEED_DEMO") == "1" and not conn.execute(
             "SELECT 1 FROM contacts LIMIT 1"
         ).fetchone():
             for item in DEMO_CONTACTS:
-                cur = conn.execute(
-                    "INSERT INTO contacts (name, favorite, notes) VALUES (?, ?, ?)",
-                    (item["name"], 1 if item["favorite"] else 0, item["notes"]),
-                )
-                save_details(conn, cur.lastrowid, item["details"])
+                contact_id = conn.insert_contact(item["name"], int(item["favorite"]), item["notes"])
+                save_details(conn, contact_id, item["details"])
 
 
 DEMO_CONTACTS = [
@@ -134,7 +112,53 @@ def save_details(conn, contact_id, details):
 # ------------------------------------------------------------------- pages
 @app.route("/")
 def index():
-    return render_template("index.html")
+    return render_template("index.html", storage_configured=STORAGE_CONFIGURED)
+
+
+@app.before_request
+def require_storage():
+    if request.path.startswith("/api/") and request.path != "/api/health" and not STORAGE_CONFIGURED:
+        return jsonify({"error": "Persistent database is not configured. Set DATABASE_URL in Vercel."}), 503
+
+
+@app.get("/api/health")
+def health():
+    if not STORAGE_CONFIGURED:
+        return jsonify({"status": "configuration_required", "persistent": False}), 503
+    with get_db() as conn:
+        conn.execute("SELECT 1").fetchone()
+    return jsonify({"status": "ok", "storage": "postgresql" if DATABASE_URL else "sqlite", "persistent": True})
+
+
+def contact_payload():
+    data = request.get_json()
+    if not isinstance(data, dict):
+        raise ValueError("Contact must be a JSON object")
+    if not isinstance(data.get("name"), str) or not data["name"].strip():
+        raise ValueError("Name is required")
+    if len(data["name"].strip()) > 200:
+        raise ValueError("Name must not exceed 200 characters")
+    if not isinstance(data.get("notes", ""), str):
+        raise ValueError("Notes must be text")
+    if "favorite" in data and not isinstance(data["favorite"], bool):
+        raise ValueError("Favorite must be true or false")
+    details = data.get("details", [])
+    if not isinstance(details, list) or len(details) > 100:
+        raise ValueError("Details must be a list of at most 100 items")
+    for item in details:
+        if not isinstance(item, dict) or item.get("type") not in DETAIL_TYPES or not isinstance(item.get("value"), str):
+            raise ValueError("Each detail needs a valid type and text value")
+    return data
+
+
+@app.errorhandler(ValueError)
+def invalid_input(error):
+    return jsonify({"error": str(error)}), 400
+
+
+@app.errorhandler(HTTPException)
+def http_error(error):
+    return jsonify({"error": error.description}), error.code
 
 
 # ----------------------------------------------------------------- api: crud
@@ -148,14 +172,14 @@ def list_contacts():
                 """
                 SELECT DISTINCT c.* FROM contacts c
                 LEFT JOIN contact_details d ON d.contact_id = c.id
-                WHERE c.name LIKE ? OR c.notes LIKE ? OR d.value LIKE ?
-                ORDER BY c.favorite DESC, c.name COLLATE NOCASE
+                WHERE LOWER(c.name) LIKE LOWER(?) OR LOWER(c.notes) LIKE LOWER(?) OR LOWER(d.value) LIKE LOWER(?)
+                ORDER BY c.favorite DESC, c.name
                 """,
                 (like, like, like),
             ).fetchall()
         else:
             rows = conn.execute(
-                "SELECT * FROM contacts ORDER BY favorite DESC, name COLLATE NOCASE"
+                "SELECT * FROM contacts ORDER BY favorite DESC, name"
             ).fetchall()
         contacts = [load_contact(conn, row["id"]) for row in rows]
     return jsonify(contacts)
@@ -163,23 +187,20 @@ def list_contacts():
 
 @app.post("/api/contacts")
 def create_contact():
-    data = request.get_json(force=True)
+    data = contact_payload()
     name = str(data.get("name", "")).strip()
     if not name:
         return jsonify({"error": "Name is required"}), 400
     with get_db() as conn:
-        cur = conn.execute(
-            "INSERT INTO contacts (name, favorite, notes) VALUES (?, ?, ?)",
-            (name, 1 if data.get("favorite") else 0, str(data.get("notes", "")).strip()),
-        )
-        contact_id = cur.lastrowid
+        contact_id = conn.insert_contact(name, int(data.get("favorite", False)), data.get("notes", "").strip())
         save_details(conn, contact_id, data.get("details"))
-    return jsonify(load_contact(get_db(), contact_id)), 201
+        result = load_contact(conn, contact_id)
+    return jsonify(result), 201
 
 
 @app.put("/api/contacts/<int:contact_id>")
 def update_contact(contact_id):
-    data = request.get_json(force=True)
+    data = contact_payload()
     name = str(data.get("name", "")).strip()
     if not name:
         return jsonify({"error": "Name is required"}), 400
@@ -192,7 +213,8 @@ def update_contact(contact_id):
             (name, str(data.get("notes", "")).strip(), contact_id),
         )
         save_details(conn, contact_id, data.get("details"))
-    return jsonify(load_contact(get_db(), contact_id))
+        result = load_contact(conn, contact_id)
+    return jsonify(result)
 
 
 @app.delete("/api/contacts/<int:contact_id>")
@@ -257,6 +279,10 @@ def build_sheet(contacts, wb=None):
             values = grouped[t] + [""] * (max_per_type[t] - len(grouped[t]))
             row += values
         ws.append(row)
+        # Treat user content as text, including strings beginning with '='.
+        for cell in ws[ws.max_row]:
+            cell.data_type = "s"
+            cell.number_format = "@"
 
     widths = {"姓名": 14, "收藏": 6, "备注": 24}
     for idx, header in enumerate(headers, start=1):
@@ -279,7 +305,7 @@ def export_excel():
     tpl.append(["姓名", "收藏", "备注", "电话1", "电话2", "邮箱1", "社交1", "地址1"])
     tpl["A2"] = "张三"
     tpl["B2"] = "是"
-    tpl["C2"] = "示例行，导入时会被忽略说明，可删除"
+    tpl["C2"] = "示例联系人：导入前请删除此行；导入会新增联系人，不自动去重"
     tpl["D2"] = "13800138000"
     tpl["E2"] = "0591-88088088"
     tpl["F2"] = "zhangsan@example.com"
@@ -310,12 +336,9 @@ def classify_header(text):
     text = str(text or "").strip()
     if not text:
         return None
-    if text == "姓名":
-        return "name"
-    if text == "收藏":
-        return "favorite"
-    if text == "备注":
-        return "notes"
+    aliases = {"姓名": "name", "name": "name", "收藏": "favorite", "favorite": "favorite", "favourite": "favorite", "备注": "notes", "notes": "notes"}
+    if text.lower() in aliases:
+        return aliases[text.lower()]
     for pattern, dtype in HEADER_TYPE_PATTERNS:
         if pattern.search(text):
             return dtype
@@ -339,27 +362,39 @@ def import_excel():
     except Exception:
         return jsonify({"error": "Failed to parse the file. Please make sure it is a valid Excel file"}), 400
 
-    ws = wb.active
-    rows = list(ws.iter_rows(values_only=True))
-    wb.close()
+    try:
+        ws = wb.active
+        rows = []
+        for row in ws.iter_rows(values_only=True):
+            if len(row) > 200 or len(rows) >= 10001:
+                raise ValueError("Maximum 10000 contacts and 200 columns per import")
+            rows.append(row)
+    except ValueError:
+        raise
+    except Exception as error:
+        raise ValueError("Failed to read the workbook") from error
+    finally:
+        wb.close()
     if len(rows) < 2:
         return jsonify({"error": "The sheet is empty: at least a header row and one data row are required"}), 400
 
     types = [classify_header(cell) for cell in rows[0]]
     if "name" not in types:
         return jsonify({"error": "Header is missing the Name column; cannot import"}), 400
+    if any(types.count(kind) > 1 for kind in ("name", "favorite", "notes")):
+        raise ValueError("Name, Favorite and Notes columns must not be duplicated")
 
     imported, skipped = 0, 0
     with get_db() as conn:
         for raw in rows[1:]:
-            if raw is None or not str(raw[0] or "").strip():
+            if raw is None or not str(raw[types.index("name")] or "").strip():
                 skipped += 1
                 continue
             record = {"name": "", "favorite": False, "notes": "", "details": []}
             for cell, ctype in zip(raw, types):
                 if ctype is None:
                     continue
-                value = str(cell or "").strip()
+                value = "" if cell is None else str(cell).strip()
                 if not value:
                     continue
                 if ctype == "name":
@@ -373,11 +408,10 @@ def import_excel():
             if not record["name"]:
                 skipped += 1
                 continue
-            cur = conn.execute(
-                "INSERT INTO contacts (name, favorite, notes) VALUES (?, ?, ?)",
-                (record["name"], 1 if record["favorite"] else 0, record["notes"]),
-            )
-            save_details(conn, cur.lastrowid, record["details"])
+            if len(record["name"]) > 200:
+                raise ValueError("Name must not exceed 200 characters; no rows were imported")
+            contact_id = conn.insert_contact(record["name"], int(record["favorite"]), record["notes"])
+            save_details(conn, contact_id, record["details"])
             imported += 1
     return jsonify({"imported": imported, "skipped": skipped})
 
@@ -386,10 +420,11 @@ def import_excel():
 def not_found(_e):
     if request.path.startswith("/api/"):
         return jsonify({"error": "接口不存在"}), 404
-    return render_template("index.html")
+    return jsonify({"error": "Page not found"}), 404
 
 
-init_db()
+if STORAGE_CONFIGURED:
+    init_db()
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5000, debug=True)
+    app.run(host="127.0.0.1", port=5000, debug=False)
