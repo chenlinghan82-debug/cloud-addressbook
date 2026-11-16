@@ -214,13 +214,15 @@ body {
 }
 
 /* ---------------- Contact cards ---------------- */
+/* flex 布局：每行自动铺满整行宽度，任何数量都不会留下空位 */
 .contact-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(min(310px, 100%), 1fr));
+    display: flex;
+    flex-wrap: wrap;
     gap: 18px;
 }
 
 .contact-card {
+    flex: 1 1 340px;
     background: var(--card);
     border: 3px solid var(--ink);
     border-radius: var(--radius);
@@ -236,8 +238,6 @@ body {
 .contact-card:nth-child(4n+2) { background: #fff5f8; }
 .contact-card:nth-child(4n+3) { background: #f4fbff; }
 .contact-card:nth-child(4n) { background: #fffbe9; }
-
-.contact-card.span-all { grid-column: 1 / -1; }
 
 @keyframes pop { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: scale(1); } }
 
@@ -544,5 +544,5 @@ body.dark .empty, body.dark .footer { color: var(--ink-2); }
     .hero { padding: 22px 18px; }
     .toolbar { flex-direction: column; align-items: stretch; }
     .toolbar-actions { justify-content: space-between; }
-    .contact-grid { grid-template-columns: 1fr; }
+    .contact-card { flex-basis: 100%; }
 }

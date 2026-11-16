@@ -59,27 +59,7 @@
 
         $("#contactGrid").innerHTML = list.map(cardHtml).join("");
         $("#emptyState").hidden = list.length !== 0;
-        balanceGrid($("#contactGrid"), ".contact-card");
     }
-
-    // 最后一行只剩一张卡时，让它横跨整行，避免孤行留白
-    function balanceGrid(grid, cardSelector) {
-        const cards = grid.querySelectorAll(cardSelector);
-        const cols = getComputedStyle(grid).gridTemplateColumns
-            .split(" ").filter((s) => s.trim()).length;
-        cards.forEach((c) => c.classList.remove("span-all"));
-        if (cols > 1 && cards.length > cols && cards.length % cols === 1) {
-            cards[cards.length - 1].classList.add("span-all");
-        }
-    }
-
-    let gridResizeTimer = null;
-    window.addEventListener("resize", () => {
-        clearTimeout(gridResizeTimer);
-        gridResizeTimer = setTimeout(() => {
-            balanceGrid($("#contactGrid"), ".contact-card");
-        }, 150);
-    });
 
     function cardHtml(c) {
         const details = TYPE_ORDER.flatMap((t) =>
