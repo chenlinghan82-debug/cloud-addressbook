@@ -11,3 +11,8 @@ venv/
 !docs/sample_import_template.xlsx
 
 .vercel
+
+.env
+.env.*
+!.env.example
+artifacts/

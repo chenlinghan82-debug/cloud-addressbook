@@ -546,3 +546,5 @@ body.dark .empty, body.dark .footer { color: var(--ink-2); }
     .toolbar-actions { justify-content: space-between; }
     .contact-card { flex-basis: 100%; }
 }
+
+.storage-notice { padding: 16px; background: #fff1c9; color: #553c12; border-radius: 12px; margin-bottom: 20px; }

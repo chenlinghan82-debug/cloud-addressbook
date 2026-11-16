@@ -51,8 +51,8 @@
 
         $("#favSection").hidden = favs.length === 0;
         $("#favGrid").innerHTML = favs.map((c) => `
-            <div class="fav-card" data-id="${c.id}" title="点击编辑 ${c.name}">
-                <div class="avatar" style="background:${colorOf(c.name)}">${c.name.slice(0, 1).toUpperCase()}</div>
+            <div class="fav-card" data-id="${c.id}" title="点击编辑 ${escapeHtml(c.name)}">
+                <div class="avatar" style="background:${colorOf(c.name)}">${escapeHtml(c.name.slice(0, 1).toUpperCase())}</div>
                 <div class="fav-name">${escapeHtml(c.name)}</div>
                 <div class="fav-sub">${escapeHtml(detailOf(c, "phone") || detailOf(c, "email") || "无联系方式")}</div>
             </div>`).join("");
@@ -74,7 +74,7 @@
         return `
         <div class="contact-card" data-id="${c.id}">
             <div class="card-head">
-                <div class="avatar" style="background:${colorOf(c.name)}">${c.name.slice(0, 1).toUpperCase()}</div>
+                <div class="avatar" style="background:${colorOf(c.name)}">${escapeHtml(c.name.slice(0, 1).toUpperCase())}</div>
                 <div>
                     <div class="card-name">${escapeHtml(c.name)}${c.favorite ? ' <span class="fav-flag">⭐</span>' : ""}</div>
                     <div class="card-notes" title="${escapeHtml(c.notes)}">${escapeHtml(c.notes || "")}</div>
@@ -107,9 +107,13 @@
         }[ch]));
     }
 
+    let loadSequence = 0;
     async function reload() {
+        const sequence = ++loadSequence;
         const url = state.keyword ? `/api/contacts?q=${encodeURIComponent(state.keyword)}` : "/api/contacts";
-        state.contacts = await api(url);
+        const contacts = await api(url);
+        if (sequence !== loadSequence) return;
+        state.contacts = contacts;
         render();
     }
 
@@ -251,7 +255,7 @@
         clearTimeout(searchTimer);
         searchTimer = setTimeout(async () => {
             state.keyword = e.target.value.trim();
-            await reload();
+            await reload().catch((err) => toast(err.message, "err"));
         }, 200);
     });
 
@@ -287,5 +291,5 @@
         }
     });
 
-    reload();
+    reload().catch((err) => toast(err.message, "err"));
 })();

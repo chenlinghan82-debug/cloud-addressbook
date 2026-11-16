@@ -9,6 +9,7 @@
 </head>
 <body>
     <div class="page">
+        {% if not storage_configured %}<p class="storage-notice">Persistent storage is not configured. Ask the maintainer to set DATABASE_URL before using this deployment.</p>{% endif %}
         <header class="hero">
             <div class="hero-inner">
                 <div class="mascot"><span class="cheek"></span></div>
@@ -64,11 +65,11 @@
             </div>
             <form id="contactForm">
                 <div class="form-row">
-                    <label>Name <b class="req">*</b></label>
-                    <input id="fName" type="text" required placeholder="Contact name">
+                    <label for="fName">Name <b class="req">*</b></label>
+                    <input id="fName" type="text" required maxlength="200" placeholder="Contact name">
                 </div>
                 <div class="form-row">
-                    <label>Notes</label>
+                    <label for="fNotes">Notes</label>
                     <input id="fNotes" type="text" placeholder="Relationship, company, memo…">
                 </div>
                 <div id="detailRows"></div>
